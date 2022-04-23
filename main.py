@@ -1,11 +1,7 @@
 import cv2
 import time
-
-from matplotlib import collections
 from movenet import Movenet
 from swipe_classifier import SwipeClassifier
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 from collections import deque
 
 
@@ -13,6 +9,8 @@ from collections import deque
     This script is meant to show how the Swipe Classifier is used
     And also for debugging
 """
+
+fps = 0
 
 
 def main():
@@ -32,6 +30,7 @@ def main():
         elif success:
             # size of debug image
             frame = cv2.resize(frame, (960, 960))
+
             # Here happens the processing of the frame
             # classifier.classify(frame, debug_frame=True)
             # if None no swipe detect else [4,1] array
@@ -45,24 +44,34 @@ def main():
 
             seq.append(norm_right_wrist)
 
-            direction = SwipeClassifier.get_displacement_direction(seq=seq)
+            direction = SwipeClassifier.displacement_direction(seq=seq)
 
             if direction:
-                print(direction)
+                print(direction.name)
 
             cv2.imshow("DEBUG", frame)
             frame_count += 1
+            global fps
+            fps = frame_count//(time.time()-start_time)
+
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
-                print('----------------------')
-                print(f'Average fps {frame_count//(time.time()-start_time)}')
-                print('----------------------')
+                print_fps(fps)
                 break
+
+
+def print_fps(fps):
+    print('----------------------')
+    print(f'Average fps {fps}')
+    print('----------------------')
 
 
 if __name__ == '__main__':
     try:
         main()
+    except KeyboardInterrupt:
+        print_fps(fps)
+        pass
     except BaseException as e:
         print(e)
         pass

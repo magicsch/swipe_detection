@@ -1,13 +1,15 @@
-from errno import ESTALE
-from cv2 import norm
+from sys import displayhook
+from matplotlib.ft2font import HORIZONTAL
 import numpy as np
 import cv2
 from fastdtw import fastdtw
 from collections import deque
+
+from rsa import sign
 from utils import *
 
 
-class SwipeClassifier():
+class SwipeClassifier:
     def __init__(self, seq_length=20) -> None:
         self._right_wrist_norm_seq = deque(maxlen=seq_length)
         self._left_wrist_norm_seq = deque(maxlen=seq_length)
@@ -58,17 +60,34 @@ class SwipeClassifier():
         return norm_right_wrist, norm_left_wrist
 
     @staticmethod
-    def get_displacement_direction(seq, epsilon=.5) -> Displacement:
-        """ Returns displacement direction """
+    def ortho_displacement(seq, vert_epsilon=.4, hor_epsilon=.7) -> OrthoDisplacement:
+        """ Returns orthogonal displacement direction """
         seq = np.array(seq)
         if len(seq) > 10:
-            displacement = np.ptp(seq, axis=0)
-            if displacement[1] > displacement[0] and displacement[1] > epsilon:
-                return Displacement.Horizontal
-            elif displacement[0] > displacement[1] and displacement[0] > epsilon:
-                return Displacement.Vertical
+            disp = np.ptp(seq, axis=0)
+            if disp[0] < disp[1] > hor_epsilon:
+                return OrthoDisplacement.Horizontal
+            elif disp[1] < disp[0] > vert_epsilon:
+                return OrthoDisplacement.Vertical
             else:
-                return Displacement.No_displacement
+                return OrthoDisplacement.No_displacement
+
+    @staticmethod
+    def displacement_direction(seq) -> DisplacementDirection:
+        disp = SwipeClassifier.ortho_displacement(seq)
+        seq = np.array(seq)
+        if disp == OrthoDisplacement.Horizontal:
+            if np.all(np.sign(seq[-1, 1]) == 1):
+                return DisplacementDirection.Left
+            elif np.sign(seq[-1, 1]) == -1:
+                return DisplacementDirection.Right
+        elif disp == OrthoDisplacement.Vertical:
+            if np.sign(seq[-1, 0]) == 1:
+                return DisplacementDirection.Down
+            elif np.sign(seq[-1, 0]) == -1:
+                return DisplacementDirection.Up
+        else:
+            return DisplacementDirection.No_displacement
 
     @ staticmethod
     def midpoint(p1, p2) -> np.array:

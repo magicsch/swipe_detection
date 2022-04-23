@@ -3,11 +3,7 @@ import numpy as np
 import cv2
 
 
-class Movenet():
-    """
-        This class loads the model and infers the keypoint coordinates
-    """
-
+class Movenet:
     def __init__(self) -> None:
         self._model = self._load_model()
         self._img_size = 192
