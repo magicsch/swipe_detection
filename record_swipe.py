@@ -15,12 +15,12 @@ import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gesture', type=str,
-                    default='right_swipe/right_hand', help="The folder of the type of the swipe and the name of the .npy file")
+                    default='right_swipe', help="The folder of the type of the swipe and the name of the .npy file")
 # parser.add_argument('--handedness', type=str,
 #                     default='right', help="'right' for right hand, 'left' for left")
 args = parser.parse_args()
 
-gesture_path = f'gesture_examples/{args.gesture}.npy'
+gesture_path = f'gesture_examples/{args.gesture}/example1.npy'
 
 
 fps = 0
@@ -81,8 +81,8 @@ def main():
                 print_fps(fps)
                 break
 
-    # with open(gesture_path, 'wb') as f:
-    #     np.save(f, seq)
+    with open(gesture_path, 'wb') as f:
+        np.save(f, seq)
     plot_seq(seq=seq)
 
 

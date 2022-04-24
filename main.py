@@ -3,6 +3,9 @@ import time
 from movenet import Movenet
 from swipe_classifier import SwipeClassifier
 from collections import deque
+from utils import *
+import traceback
+import numpy as np
 
 
 """
@@ -19,8 +22,8 @@ def main():
     start_time = time.time()
     model = Movenet()
     cap = cv2.VideoCapture(0)
-
-    seq = deque(maxlen=20)
+    seq = deque(maxlen=10)
+    dir_seq = deque(maxlen=10)
 
     while True:
         success, frame = cap.read()
@@ -35,19 +38,10 @@ def main():
             # classifier.classify(frame, debug_frame=True)
             # if None no swipe detect else [4,1] array
 
-            keypoints = model.infer(frame)
-            frame = model.draw_keypoints(frame, keypoints, .3)
-            shoulder_width, shoulder_nose_height = SwipeClassifier.get_normalization_factors(
-                keypoints)
-            norm_right_wrist, norm_left_wrist = SwipeClassifier.normalize_kps(
-                keypoints, shoulder_width, shoulder_nose_height)
-
-            seq.append(norm_right_wrist)
-
-            direction = SwipeClassifier.displacement_direction(seq=seq)
-
-            if direction:
-                print(direction.name)
+            out = classifier.classify_swipe(frame)
+            if out is not Swipe.none:
+                print('-----------')
+                print(out)
 
             cv2.imshow("DEBUG", frame)
             frame_count += 1
@@ -73,5 +67,5 @@ if __name__ == '__main__':
         print_fps(fps)
         pass
     except BaseException as e:
-        print(e)
+        print(traceback.format_exc())
         pass
