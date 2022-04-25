@@ -1,9 +1,9 @@
 import yaml
+from yaml.loader import SafeLoader
 import numpy as np
 from collections import deque
 from movenet import Movenet
 from utils import *
-from yaml.loader import SafeLoader
 
 
 class SwipeClassifier:
@@ -160,16 +160,3 @@ class SwipeClassifier:
     @ staticmethod
     def midpoint(p1, p2) -> np.array:
         return np.array([(p1[0]+p2[0])//2, (p1[1]+p2[1])//2])
-
-    @staticmethod
-    def negative_edge(seq):
-        seq = np.array(seq)
-        if len(seq) > 5:
-            if seq[-2] == Direction.right and seq[-1] == Direction.none:
-                return Swipe.right
-            elif seq[-2] == Direction.left and seq[-1] == Direction.none:
-                return Swipe.left
-            elif seq[-2] == Direction.up and seq[-1] == Direction.none:
-                return Swipe.up
-            elif seq[-2] == Direction.down and seq[-1] == Direction.none:
-                return Swipe.down

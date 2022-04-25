@@ -20,20 +20,6 @@ KEYPOINT_DICT = {
     'right_ankle': 16}
 
 
-# class Ortho(Enum):
-#     none = 0
-#     horizontal = 1
-#     vertical = 2
-
-
-# class Direction(Enum):
-#     none = 0
-#     right = 1
-#     left = 2
-#     up = 3
-#     down = 4
-
-
 class Swipe(Enum):
     none = 0
     right = 1
