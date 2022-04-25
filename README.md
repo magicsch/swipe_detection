@@ -33,7 +33,7 @@ Install python from https://www.python.org/downloads/release/python-3911/
 
 ## Move to repo local directory
 
-`cd movenet_with_webcam-master`
+`cd swipe_detection`
 
 ## Install dependencies
 
