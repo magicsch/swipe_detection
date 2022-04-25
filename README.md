@@ -53,7 +53,7 @@ It ouputs the edges of the swipe signal.
 Meaning that the first Swipe.RIght indicates the swipe has started and the second indicates it has ended.
 So when the model outputs the second Swipe.Right a right swipe has been performed.
 
-![alt text](https://github.com/man_do/swipe_detection/imgs/main/image.jpg?raw=true)
+![alt text](https://github.com/man-do/swipe_detection/blob/main/imgs/flow.jpg)
 
 ## Exit
 
