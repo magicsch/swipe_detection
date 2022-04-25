@@ -16,14 +16,17 @@ import numpy as np
 fps = 0
 
 
+def print_fps(fps):
+    print('----------------------')
+    print(f'Average fps {fps}')
+    print('----------------------')
+
+
 def main():
     classifier = SwipeClassifier()
     frame_count = 0
     start_time = time.time()
-    model = Movenet()
     cap = cv2.VideoCapture(0)
-    seq = deque(maxlen=10)
-    dir_seq = deque(maxlen=10)
 
     while True:
         success, frame = cap.read()
@@ -34,14 +37,12 @@ def main():
             # size of debug image
             frame = cv2.resize(frame, (960, 960))
 
-            # Here happens the processing of the frame
-            # classifier.classify(frame, debug_frame=True)
-            # if None no swipe detect else [4,1] array
-
-            out = classifier.classify_swipe(frame)
+            out, frame = classifier.classify_swipe(frame, debug_img=True)
             if out is not Swipe.none:
-                print('-----------')
-                print(out)
+                # print('-----------')
+                # print(out)
+                cv2.putText(frame, out.name, (100, 150),
+                            cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 0), 12)
 
             cv2.imshow("DEBUG", frame)
             frame_count += 1
@@ -52,12 +53,6 @@ def main():
                 cv2.destroyAllWindows()
                 print_fps(fps)
                 break
-
-
-def print_fps(fps):
-    print('----------------------')
-    print(f'Average fps {fps}')
-    print('----------------------')
 
 
 if __name__ == '__main__':
