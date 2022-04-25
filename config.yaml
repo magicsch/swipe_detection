@@ -1,6 +1,3 @@
-# How to configure the params of the program
-# The program detects 
-
 #### Length of seq that holds past keypoints coords
 sequnece_length: 12
 #### Horizontal swipe stride lengths
