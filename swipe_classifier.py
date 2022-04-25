@@ -1,8 +1,5 @@
-from ast import Return
-from matplotlib.axis import Axis
 import yaml
 import numpy as np
-import cv2
 from collections import deque
 from movenet import Movenet
 from utils import *
@@ -29,17 +26,11 @@ class SwipeClassifier:
 
         shoulder_width, shoulder_nose_height, nose = self.get_normalization_factors(
             keypoints)
-        # print(nose)
         self._nose_seq.append(nose)
 
         if self.person_valid(keypoints, self._nose_seq):
             frame = self._movenet.draw_keypoints(
                 frame, keypoints, threshold=.3)
-
-            # shoulder_width, shoulder_nose_height, nose = self.get_normalization_factors(
-            #     keypoints)
-            # print(nose)
-            # self._nose_seq.append(nose)
 
             norm_right_wrist, norm_left_wrist = self.normalize_kps(
                 keypoints, shoulder_width, shoulder_nose_height)

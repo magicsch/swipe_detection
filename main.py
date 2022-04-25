@@ -1,11 +1,8 @@
 import cv2
 import time
-from movenet import Movenet
 from swipe_classifier import SwipeClassifier
-from collections import deque
 from utils import *
 import traceback
-import numpy as np
 
 
 """
