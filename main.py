@@ -1,6 +1,5 @@
 import cv2
 import time
-from movenet import Movenet
 from swipe_classifier import SwipeClassifier
 from utils import *
 import traceback
@@ -11,19 +10,9 @@ import traceback
     And also for debugging
 """
 
-fps = 0
-
-
-def print_fps(fps):
-    print('----------------------')
-    print(f'Average fps {fps}')
-    print('----------------------')
-
 
 def main():
     classifier = SwipeClassifier()
-    frame_count = 0
-    start_time = time.time()
     cap = cv2.VideoCapture(0)
 
     while True:
@@ -32,12 +21,12 @@ def main():
             print("No video feed")
             break
         elif success:
-            global fps
             # size of debug image
+            # dont't need to upscale without debug
             frame = cv2.resize(frame, (960, 960))
 
             out = classifier.classify_swipe(
-                frame, fps=fps, debug_img=False)
+                frame, debug_img=False)
             if out is not Swipe.none:
                 print('-----------')
                 print(out.name)
@@ -46,12 +35,9 @@ def main():
 
             time.sleep(.15)
             cv2.imshow("DEBUG", frame)
-            frame_count += 1
-            fps = frame_count//(time.time()-start_time)
 
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
-                print_fps(fps)
                 break
 
 
@@ -59,7 +45,6 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print_fps(fps)
         pass
     except BaseException as e:
         print(traceback.format_exc())

@@ -1,7 +1,6 @@
-from re import A
-import yaml
-from yaml.loader import SafeLoader
+import time
 import numpy as np
+import cv2
 from collections import deque
 from movenet import Movenet
 from utils import *
@@ -12,17 +11,21 @@ class SwipeClassifier:
         self._norm_r_seq = deque(maxlen=10)
         self._norm_l_seq = deque(maxlen=10)
         self._nose_seq = deque(maxlen=10)
-        # self._r_swipe_seq = deque(maxlen=5)
-        # self._l_swipe_seq = deque(maxlen=5)
         self._movenet = Movenet()
         self._thresh = .3
+        self.fps = 0
+        self.frame_count = 0
+        self.start_time = None
 
-    def classify_swipe(self, frame, fps, debug_img=False):
-        fps = int(fps*1)
-        if abs(self._norm_r_seq.maxlen - fps) > 2:
-            self._norm_r_seq = deque(maxlen=fps)
-            self._norm_l_seq = deque(maxlen=fps)
-            self._nose_seq = deque(maxlen=fps//2)
+    def classify_swipe(self, frame, debug_img=False):
+        if not self.start_time:
+            self.start_time = time.time()
+        out = Swipe.none
+        seq_len = int(self.fps)
+        if abs(self._norm_r_seq.maxlen - seq_len) > 2:
+            self._norm_r_seq = deque(maxlen=seq_len)
+            self._norm_l_seq = deque(maxlen=seq_len)
+            self._nose_seq = deque(maxlen=seq_len//2)
 
         keypoints = self._movenet.infer(frame)
         shoulder_width, shoulder_nose_height, nose = self.get_normalization_factors(
@@ -53,24 +56,23 @@ class SwipeClassifier:
                     self._norm_l_seq, l_arm_l_stride, l_arm_r_stride, up_stride, down_stride)
                 if out is not Swipe.none:
                     self._norm_l_seq.clear()
-            elif r_var >= l_var:
+            elif r_var > l_var:
                 out = self.detect_swipe(
                     self._norm_r_seq, r_arm_r_stride, r_arm_l_stride, up_stride, down_stride)
                 if out is not Swipe.none:
                     self._norm_r_seq.clear()
-            else:
-                out = Swipe.none
 
             frame = self._movenet.draw_keypoints(
                 frame, keypoints, threshold=self._thresh)
 
-            if debug_img:
-                return out, frame
-            return out
+        self.fps = self.frame_count//(time.time()-self.start_time)
+        self.frame_count += 1
+        cv2.putText(frame, f'{self.fps} fps', (50, int(frame.shape[1]*0.9)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 5)
 
         if debug_img:
-            return Swipe.none, frame
-        return Swipe.none
+            return out, frame
+        return out
 
     @staticmethod
     def person_valid(keypoints_with_scores, seq, epsilon=0.03, thresh=.3) -> bool:
