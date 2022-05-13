@@ -1,5 +1,6 @@
 import cv2
 import time
+from movenet import Movenet
 from swipe_classifier import SwipeClassifier
 from utils import *
 import traceback
@@ -31,19 +32,21 @@ def main():
             print("No video feed")
             break
         elif success:
+            global fps
             # size of debug image
             frame = cv2.resize(frame, (960, 960))
 
-            out, frame = classifier.classify_swipe(frame, debug_img=True)
+            out = classifier.classify_swipe(
+                frame, fps=fps, debug_img=False)
             if out is not Swipe.none:
-                # print('-----------')
-                # print(out)
+                print('-----------')
+                print(out.name)
                 cv2.putText(frame, out.name, (100, 150),
                             cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 0), 12)
 
+            time.sleep(.15)
             cv2.imshow("DEBUG", frame)
             frame_count += 1
-            global fps
             fps = frame_count//(time.time()-start_time)
 
             if cv2.waitKey(10) & 0xFF == ord('q'):

@@ -1,4 +1,6 @@
 tensorflow>=2.5.0
+pycoral==0.1.0
 numpy
 opencv-python
 pyaml
+

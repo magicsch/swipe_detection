@@ -2,26 +2,24 @@ import tensorflow as tf
 import numpy as np
 import cv2
 
-# new branch
-
 
 class Movenet:
     def __init__(self) -> None:
         self._model = self._load_model()
-        self._img_size = 192
+        self._img_size = 256
         self._keypoint_thresh = .4
 
     def _load_model(self) -> tf.lite.Interpreter:
         # Initialize the TFLite interpreter
         return tf.lite.Interpreter(
-            model_path="model/lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite")
+            model_path="model/lite-model_movenet_singlepose_thunder_3.tflite")
 
     def infer(self, image) -> np.array:
         """ Returns array of keypoints [y, x, score] """
         image = tf.expand_dims(image, axis=0)
         image = tf.image.resize_with_pad(image, self._img_size, self._img_size)
         self._model.allocate_tensors()
-        input_image = tf.cast(image, dtype=tf.uint8)
+        input_image = tf.cast(image, dtype=tf.float32)
         input_details = self._model.get_input_details()
         output_details = self._model.get_output_details()
         self._model.set_tensor(input_details[0]['index'], input_image.numpy())

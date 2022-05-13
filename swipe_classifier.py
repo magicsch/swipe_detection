@@ -1,3 +1,4 @@
+from re import A
 import yaml
 from yaml.loader import SafeLoader
 import numpy as np
@@ -8,67 +9,60 @@ from utils import *
 
 class SwipeClassifier:
     def __init__(self) -> None:
-        self._config = self._load_config()
-        self._r_wrist_seq = deque(maxlen=self._config['sequnece_length'])
-        self._l_wrist_seq = deque(maxlen=self._config['sequnece_length'])
-        self._r_swipe_seq = deque(maxlen=5)
-        self._l_swipe_seq = deque(maxlen=5)
-        self._nose_seq = deque(
-            maxlen=self._config['sequnece_length']//2)
+        self._norm_r_seq = deque(maxlen=10)
+        self._norm_l_seq = deque(maxlen=10)
+        self._nose_seq = deque(maxlen=10)
+        # self._r_swipe_seq = deque(maxlen=5)
+        # self._l_swipe_seq = deque(maxlen=5)
         self._movenet = Movenet()
+        self._thresh = .3
 
-    def _load_config(self):
-        with open('config.yaml', 'r') as f:
-            return yaml.load(f, Loader=SafeLoader)
+    def classify_swipe(self, frame, fps, debug_img=False):
+        fps = int(fps*1)
+        if abs(self._norm_r_seq.maxlen - fps) > 2:
+            self._norm_r_seq = deque(maxlen=fps)
+            self._norm_l_seq = deque(maxlen=fps)
+            self._nose_seq = deque(maxlen=fps//2)
 
-    def classify_swipe(self, frame, debug_img=False) -> Swipe:
         keypoints = self._movenet.infer(frame)
-
         shoulder_width, shoulder_nose_height, nose = self.get_normalization_factors(
             keypoints)
         self._nose_seq.append(nose)
 
         if self.person_valid(keypoints, self._nose_seq):
-            frame = self._movenet.draw_keypoints(
-                frame, keypoints, threshold=.3)
 
-            norm_right_wrist, norm_left_wrist = self.normalize_kps(
+            n_right, n_left = self.normalize_kps(
                 keypoints, shoulder_width, shoulder_nose_height)
 
-            self._r_wrist_seq.append(norm_right_wrist)
-            self._l_wrist_seq.append(norm_left_wrist)
+            self._norm_r_seq.append(n_right)
+            self._norm_l_seq.append(n_left)
 
-            r_arm_r_stride = shoulder_width * \
-                self._config['right_arm_right_swipe_stride']
-            r_arm_l_stride = shoulder_width * \
-                self._config['right_arm_left_swipe_stride']
-            l_arm_r_stride = shoulder_width * \
-                self._config['left_arm_right_swipe_stride']
-            l_arm_l_stride = shoulder_width * \
-                self._config['left_arm_left_swipe_stride']
-            up_stride = shoulder_nose_height*self._config['up_swipe_stride']
-            down_stride = shoulder_nose_height * \
-                self._config['down_swipe_stride']
+            a = 6
+            r_arm_r_stride = shoulder_width*a
+            r_arm_l_stride = shoulder_width*a
+            l_arm_r_stride = shoulder_width*a
+            l_arm_l_stride = shoulder_width*a
+            up_stride = shoulder_width*a
+            down_stride = shoulder_width*a
 
-            r_wrist_var = np.var(self._r_wrist_seq)
-            l_wrist_var = np.var(self._l_wrist_seq)
+            r_var = np.var(self._norm_r_seq)
+            l_var = np.var(self._norm_l_seq)
 
-            if l_wrist_var > r_wrist_var:
-                l_out = self.detect_swipe(
-                    self._l_wrist_seq, l_arm_r_stride, l_arm_l_stride, up_stride, down_stride)
-                self._l_swipe_seq.append(l_out)
-                if self.sig_edge(self._l_swipe_seq):
-                    out = l_out
-                else:
-                    out = Swipe.none
-            elif r_wrist_var >= l_wrist_var:
-                r_out = self.detect_swipe(
-                    self._r_wrist_seq, r_arm_r_stride, r_arm_l_stride, up_stride, down_stride)
-                self._r_swipe_seq.append(r_out)
-                if self.sig_edge(self._r_swipe_seq):
-                    out = r_out
-                else:
-                    out = Swipe.none
+            if l_var > r_var:
+                out = self.detect_swipe(
+                    self._norm_l_seq, l_arm_l_stride, l_arm_r_stride, up_stride, down_stride)
+                if out is not Swipe.none:
+                    self._norm_l_seq.clear()
+            elif r_var >= l_var:
+                out = self.detect_swipe(
+                    self._norm_r_seq, r_arm_r_stride, r_arm_l_stride, up_stride, down_stride)
+                if out is not Swipe.none:
+                    self._norm_r_seq.clear()
+            else:
+                out = Swipe.none
+
+            frame = self._movenet.draw_keypoints(
+                frame, keypoints, threshold=self._thresh)
 
             if debug_img:
                 return out, frame
@@ -79,16 +73,16 @@ class SwipeClassifier:
         return Swipe.none
 
     @staticmethod
-    def person_valid(keypoints_with_scores, shoulder_seq, epsilon=.04, thresh=.3) -> bool:
-        if len(shoulder_seq) == 0:
+    def person_valid(keypoints_with_scores, seq, epsilon=0.03, thresh=.3) -> bool:
+        if len(seq) == 0:
             return True
         # is person moving
-        if np.ptp(shoulder_seq, axis=0)[1] <= epsilon:
+        if np.ptp(seq, axis=0)[1] <= epsilon:
             kp_keys = ['nose', 'right_shoulder',
                        'left_shoulder', 'right_elbow',
                        'left_elbow', 'right_wrist', 'left_wrist']
             for key in kp_keys:
-                if keypoints_with_scores[KEYPOINT_DICT[key]][2] < thresh:
+                if keypoints_with_scores[KEYPOINT_DICT[key]][2] <= thresh:
                     return False
             return True
         return False
@@ -131,18 +125,19 @@ class SwipeClassifier:
         right_elbow_kp = keypoints_with_scores[KEYPOINT_DICT['right_elbow'], :2]
         left_wrist_kp = keypoints_with_scores[KEYPOINT_DICT['left_wrist'], :2]
         left_elbow_kp = keypoints_with_scores[KEYPOINT_DICT['left_elbow'], :2]
-        # Position normalization
-        norm_right_wrist = right_wrist_kp - right_elbow_kp
-        norm_left_wrist = left_wrist_kp - left_elbow_kp
+        # nose_kp = keypoints_with_scores[KEYPOINT_DICT['nose'], :2]
+        # Position normalization with elbow kps
+        norm_r = right_wrist_kp - right_elbow_kp
+        norm_l = left_wrist_kp - left_elbow_kp
         # Scale normalization
-        norm_right_wrist[0] /= vert_scale_factor
-        norm_right_wrist[1] /= hor_scale_factor
-        norm_left_wrist[0] /= vert_scale_factor
-        norm_left_wrist[1] /= hor_scale_factor
-        return norm_right_wrist, norm_left_wrist
+        scl = np.array([hor_scale_factor, hor_scale_factor])
+        norm_r /= scl
+        norm_l /= scl
+        return norm_r, norm_l
 
     @staticmethod
     def wrist_position(seq, axis=0) -> Swipe:
+        """ Works with elbow normalized coords """
         seq = np.array(seq)
         if axis == 0:
             if np.sign(seq[-1, 1]) == 1:
@@ -159,4 +154,4 @@ class SwipeClassifier:
 
     @ staticmethod
     def midpoint(p1, p2) -> np.array:
-        return np.array([(p1[0]+p2[0])//2, (p1[1]+p2[1])//2])
+        return np.array([(p1[0]+p2[0])/2, (p1[1]+p2[1])/2])
