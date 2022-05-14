@@ -1,5 +1,4 @@
 from enum import Enum
-from collections import namedtuple
 
 KEYPOINT_DICT = {
     'nose': 0,
@@ -27,6 +26,3 @@ class Swipe(Enum):
     left = 2
     up = 3
     down = 4
-
-
-norm_kp = namedtuple('norm_kp', ['norm_nose', 'norm_elbow'])

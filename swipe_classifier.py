@@ -40,13 +40,13 @@ class SwipeClassifier:
             self._norm_r_seq.append(n_right)
             self._norm_l_seq.append(n_left)
 
-            a = 6
+            a = 4
             r_arm_r_stride = shoulder_width*a
             r_arm_l_stride = shoulder_width*a
             l_arm_r_stride = shoulder_width*a
             l_arm_l_stride = shoulder_width*a
-            up_stride = shoulder_width*a
-            down_stride = shoulder_width*a
+            up_stride = shoulder_width*(a+5)
+            down_stride = shoulder_width*(a+5)
 
             r_var = np.var(self._norm_r_seq)
             l_var = np.var(self._norm_l_seq)
