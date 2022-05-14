@@ -1,5 +1,0 @@
-https://github.com/google-coral/pycoral/releases/download/v2.0.0/tflite_runtime-2.5.0.post1-cp39-cp39-win_amd64.whl
-
-https://github.com/google-coral/libedgetpu/releases/download/release-frogfish/edgetpu_runtime_20210119.zip
-
-pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
