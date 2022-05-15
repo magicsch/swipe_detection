@@ -1,4 +1,5 @@
 from enum import Enum
+from turtle import position
 
 KEYPOINT_DICT = {
     'nose': 0,
@@ -26,3 +27,18 @@ class Swipe(Enum):
     left = 2
     up = 3
     down = 4
+
+
+class Position(Enum):
+    middle = 0
+    right = 1
+    left = 2
+    up = 3
+    down = 4
+
+
+SWIPES_DICT = {
+    Swipe.up: [Position.middle, Position.up],
+    Swipe.down: [Position.middle, Position.down],
+    Swipe.right: [Position.middle, Position.right],
+    Swipe.left: [Position.middle, Position.left]}

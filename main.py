@@ -1,4 +1,4 @@
-import cv2
+from cv2 import cv2
 import time
 from swipe_classifier import SwipeClassifier
 from utils import *
@@ -6,8 +6,8 @@ import traceback
 
 
 """
-    This script is meant to show how the Swipe Classifier is used
-    And also for debugging
+    This script is meant to show how the Swipe Classifier is used,
+    for for debugging also
 """
 
 
@@ -21,13 +21,12 @@ def main():
             print("No video feed")
             break
         elif success:
-            # size of debug image
             # dont't need to upscale without debug
-            img_sz = (960, *2)
+            img_sz = (960,) * 2
             frame = cv2.resize(frame, img_sz)
 
-            out = classifier.classify_swipe(
-                frame, debug_img=False)
+            out, frame = classifier.classify_swipe(
+                frame, debug_img=True)
             if out is not Swipe.none:
                 print('-----------')
                 print(out.name)
