@@ -15,12 +15,14 @@ class SwipeClassifier:
         self._l_wrist_seq = deque(maxlen=10)
         self._nose_seq = deque(maxlen=10)
         self._movenet = Movenet()
+        self.shoulder_width = 0
         self._thresh = .3
         self.fps = 0
         self.frame_count = 0
         self.start_time = None
+        self._elbow_circle_raidus = 0
 
-    def wrapper(func):
+    def _wrapper(func):
         """
             Calc FPS and set sequence lengths
         """
@@ -35,16 +37,20 @@ class SwipeClassifier:
             result = func(*args, **kwargs)
             args[0].frame_count += 1
             args[0].fps = args[0].frame_count//(time.time()-args[0].start_time)
-            # print(f'{args[0].fps} fps')
+            if kwargs['debug_img']:
+                cv2.putText(args[1], f'{args[0].fps} fps', (50, int(args[1].shape[1]*0.9)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, RED, 5)
             return result
         return wrap_func
 
-    @wrapper
+    @_wrapper
     def classify_swipe(self, frame, debug_img=False):
-        out = Swipe.none
+        out = None
         keypoints = self._movenet.infer(frame.copy())
         shoulder_width, nose = self.get_normalization_factors(
             keypoints)
+        self.shoulder_width = shoulder_width
+        self._elbow_circle_raidus = self.shoulder_width*4
         self._nose_seq.append(nose)
 
         if self.person_valid(keypoints, self._nose_seq):
@@ -57,27 +63,41 @@ class SwipeClassifier:
             res = self.wrist_position(n_right)
             out = self.update_state(res)
 
+            frame = self.debug_draw(frame, keypoints)
+
         if debug_img:
-            cv2.putText(frame, f'{self.fps} fps', (50, int(frame.shape[1]*0.9)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 5)
-            frame = Movenet.draw_keypoints(frame, keypoints, self._thresh)
             return out, frame
         return out
+
+    def debug_draw(self, img, kps):
+        # items = itemgetter('right_elbow')(KEYPOINT_DICT)
+        # r_e = kps[items, :2]*img.shape[0]
+        frame = Movenet.draw_keypoints(img, kps, self._thresh)
+        return frame
 
     def update_state(self, position) -> Optional[Position]:
         if not self._last_states:
             self._last_states.append(position)
         elif self._last_states and not self._last_states[-1] == position:
             self._last_states.append(position)
-            for k, v in SWIPES_DICT.items():
-                if list(self._last_states)[-2:] == v:
+            return self.detect_swipe()
+        return None
+
+    def detect_swipe(self) -> Optional[Position]:
+        for k, v in SWIPE_DEF_DICT.items():
+            for el in v:
+                if list(self._last_states)[-(len(el)):] == el:
                     return k
-        return Swipe.none
 
-    def move_length(self, seq):
-        disp = np.ptp(seq, axis=0)
+    def move_displacement(self, seq) -> np.array:
+        """
+            Returns displacement
+            horizontal : 1
+            vertical : 0
+        """
+        return np.ptp(seq, axis=0)
 
-    @staticmethod
+    @ staticmethod
     def person_valid(keypoints_with_scores, seq, epsilon=0.03, thresh=.3) -> bool:
         if len(seq) == 0:
             return True
@@ -92,7 +112,7 @@ class SwipeClassifier:
             return True
         return False
 
-    @staticmethod
+    @ staticmethod
     def get_normalization_factors(kps) -> tuple:
         items = itemgetter('right_shoulder', 'left_shoulder',
                            'nose')(KEYPOINT_DICT)
@@ -100,7 +120,7 @@ class SwipeClassifier:
         sh_width = np.linalg.norm(r_sh-l_sh)
         return sh_width, nose
 
-    @staticmethod
+    @ staticmethod
     def normalize_wrists(kps, scl_factor) -> tuple:
         """
             Scale and position normalization
@@ -111,11 +131,8 @@ class SwipeClassifier:
         scl = np.array((scl_factor,)*2)
         return (r_wr - r_el)/scl, (l_wr - l_el)/scl
 
-    @staticmethod
-    def wrist_position(pos) -> Position:
-        # make it independent of distance
-        ################
-        if np.linalg.norm(pos) > .6:
+    def wrist_position(self, pos) -> Position:
+        if np.linalg.norm(pos) > self._elbow_circle_raidus:
             p = abs(pos)
             if p[0] < p[1]:
                 return Position.right if np.sign(pos[1]) == -1 else Position.left

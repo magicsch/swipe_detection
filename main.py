@@ -27,13 +27,13 @@ def main():
 
             out, frame = classifier.classify_swipe(
                 frame, debug_img=True)
-            if out is not Swipe.none:
+            if out:
                 print('-----------')
                 print(out.name)
                 cv2.putText(frame, out.name, (100, 150),
                             cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 0), 12)
 
-            time.sleep(.15)
+            # time.sleep(.15)
             cv2.imshow("DEBUG", frame)
 
             if cv2.waitKey(10) & 0xFF == ord('q'):
