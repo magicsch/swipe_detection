@@ -22,6 +22,7 @@ class SwipeClassifier:
         self.frame_count = 0
         self.start_time = None
         self._elbow_circle_raidus = 0
+        self._move_thresh = 0
 
     def _wrapper(func):
         """
@@ -39,7 +40,7 @@ class SwipeClassifier:
             args[0].frame_count += 1
             args[0].fps = args[0].frame_count//(time.time()-args[0].start_time)
             if kwargs['debug_img']:
-                cv2.putText(args[1], f'{args[0].fps} fps', (50, int(args[1].shape[1]*0.9)),
+                cv2.putText(args[1], f'{args[0].fps:.0f} fps', (50, int(args[1].shape[1]*0.9)),
                             cv2.FONT_HERSHEY_SIMPLEX, 2, RED, 5)
             return result
         return wrap_func
@@ -51,7 +52,8 @@ class SwipeClassifier:
         shoulder_width, nose = self.get_normalization_factors(
             keypoints)
         self.shoulder_width = shoulder_width
-        self._elbow_circle_raidus = self.shoulder_width*4
+        self._move_thresh = shoulder_width*.2
+        self._elbow_circle_raidus = self.shoulder_width*3.5
         self._nose_seq.append(nose)
 
         if self.person_valid(keypoints, self._nose_seq):
@@ -59,61 +61,68 @@ class SwipeClassifier:
             n_right, n_left = self.normalize_wrists(
                 keypoints, shoulder_width)
 
+            # make it detect swipes even when last frame
+            # person not valid
+
             self._r_wrist_seq.append(n_right)
-            self._l_wrist_seq.append(n_left)
             pos = self.wrist_position(n_right)
-            out_r = self.update_state(self._r_last_states, pos)
+            out_r = self.update_state(
+                self._r_last_states, pos, self._r_wrist_seq)
+
+            self._l_wrist_seq.append(n_left)
             pos = self.wrist_position(n_left)
-            out_l = self.update_state(self._l_last_states, pos)
+            out_l = self.update_state(
+                self._l_last_states, pos, self._l_wrist_seq)
 
             out = out_r if out_r else out_l
 
             frame = self.debug_draw(frame, keypoints) if debug_img else frame
 
-        return out, frame if debug_img else frame
+        return out, frame if debug_img else out
 
-    def debug_draw(self, img, kps):
+    def debug_draw(self, img, kps) -> np.array:
         frame = Movenet.draw_keypoints(img, kps, self._thresh)
         return frame
 
-    def update_state(self, states, position) -> Optional[Position]:
+    def update_state(self, states, position, positions_seq) -> Optional[Position]:
         if not states:
             states.append(position)
         elif states and not states[-1] == position:
             states.append(position)
-            return self.detect_swipe(states)
+            return self.detect_swipe(states, positions_seq)
         return None
 
-    def detect_swipe(self, states) -> Optional[Position]:
+    def detect_swipe(self, states, positions_seq) -> Optional[Position]:
         for k, v in SWIPE_DEF_DICT.items():
-            for el in v:
-                if list(states)[-(len(el)):] == el:
+            multip, *list_ = v
+            for el in list_:
+                if list(states)[-(len(el)):] == el and self.move_displacement(positions_seq)[1] >= multip*self.shoulder_width:
+                    # print(self.move_displacement(self._r_wrist_seq)[1])
+                    # print(multip*self.shoulder_width)
                     return k
 
-    def move_displacement(self, seq) -> np.array:
+    def move_displacement(self, seq) -> tuple:
         """
-            Returns displacement
-            horizontal : 1
-            vertical : 0
+            Returns the bigger displacement, horizontal or vertical
         """
-        return np.ptp(seq, axis=0)
+        disp = np.ptp(seq, axis=0)
+        return (0, disp[0]) if disp[0] > disp[1] else (1, disp[1])
 
-    @ staticmethod
-    def person_valid(keypoints_with_scores, seq, epsilon=0.03, thresh=.3) -> bool:
+    def person_valid(self, keypoints_with_scores, seq, thresh=.3) -> bool:
         if len(seq) == 0:
             return True
         # is person moving
-        if np.ptp(seq, axis=0)[1] <= epsilon:
-            kp_keys = ['nose', 'right_shoulder',
-                       'left_shoulder', 'right_elbow',
-                       'left_elbow', 'right_wrist', 'left_wrist']
-            for key in kp_keys:
-                if keypoints_with_scores[KEYPOINT_DICT[key]][2] <= thresh:
+        if self.move_displacement(seq)[1] <= self._move_thresh and self.shoulder_width >= 0.12:
+            items = itemgetter('nose', 'right_shoulder',
+                               'left_shoulder', 'right_elbow',
+                               'left_elbow', 'right_wrist', 'left_wrist')(KEYPOINT_DICT)
+            for score in keypoints_with_scores[items, 2]:
+                if score <= thresh:
                     return False
             return True
         return False
 
-    @ staticmethod
+    @staticmethod
     def get_normalization_factors(kps) -> tuple:
         items = itemgetter('right_shoulder', 'left_shoulder',
                            'nose')(KEYPOINT_DICT)
@@ -121,7 +130,7 @@ class SwipeClassifier:
         sh_width = np.linalg.norm(r_sh-l_sh)
         return sh_width, nose
 
-    @ staticmethod
+    @staticmethod
     def normalize_wrists(kps, scl_factor) -> tuple:
         """
             Scale and position normalization

@@ -1,19 +1,19 @@
 import tensorflow as tf
 import numpy as np
 from utils import *
-import cv2
+from cv2 import cv2
 
 
 class Movenet:
     def __init__(self) -> None:
         self._model = self._load_model()
-        self._img_size = 192
+        self._img_size = 256
         self._keypoint_thresh = .4
 
     def _load_model(self) -> tf.lite.Interpreter:
         # Initialize the TFLite interpreter
         return tf.lite.Interpreter(
-            model_path="model/lite-model_movenet_singlepose_lightning_3.tflite")
+            model_path="model/lite-model_movenet_singlepose_thunder_3.tflite")
 
     def infer(self, image) -> np.array:
         """ Returns array of keypoints [y, x, score] """
@@ -38,10 +38,10 @@ class Movenet:
             if kp[-1] >= threshold:
                 image = cv2.circle(
                     image, (int(kp[1] * size), int(kp[0] * size)), 3, RED, 3)
-        for ln in KEYPOINT_EDGE_INDS_TO_COLOR.keys():
+        for ed in KEYPOINT_EDGES:
             start = tuple(
-                (np.flip(keypoints_with_scores[ln[0], :2])*size).astype(np.int32))
+                (np.flip(keypoints_with_scores[ed[0], :2])*size).astype(np.int32))
             end = tuple(
-                (np.flip(keypoints_with_scores[ln[1], :2])*size).astype(np.int32))
+                (np.flip(keypoints_with_scores[ed[1], :2])*size).astype(np.int32))
             image = cv2.line(image, start, end, BLUE, 3)
         return image

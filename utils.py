@@ -24,24 +24,24 @@ KEYPOINT_DICT = {
     'right_ankle': 16
 }
 
-KEYPOINT_EDGE_INDS_TO_COLOR = {
-    (0, 1): 'm',
-    (0, 2): 'c',
-    (1, 3): 'm',
-    (2, 4): 'c',
-    (0, 5): 'm',
-    (0, 6): 'c',
-    (5, 7): 'm',
-    (7, 9): 'm',
-    (6, 8): 'c',
-    (8, 10): 'c',
-    (5, 6): 'y',
-    (5, 11): 'm',
-    (6, 12): 'c',
-    (11, 12): 'y',
-    (11, 13): 'm',
-    (12, 14): 'c',
-}
+KEYPOINT_EDGES = [
+    (0, 1),
+    (0, 2),
+    (1, 3),
+    (2, 4),
+    (0, 5),
+    (0, 6),
+    (5, 7),
+    (7, 9),
+    (6, 8),
+    (8, 10),
+    (5, 6),
+    (5, 11),
+    (6, 12),
+    (11, 12),
+    (11, 13),
+    (12, 14),
+]
 
 
 class Swipe(Enum):
@@ -60,14 +60,18 @@ class Position(Enum):
 
 
 SWIPE_DEF_DICT = {
-    Swipe.up: [[Position.down, Position.middle, Position.up],
+    Swipe.up: [10,
+               [Position.down, Position.middle, Position.up],
                [Position.down, Position.up],
                [Position.middle, Position.up]],
-    Swipe.down: [[Position.up, Position.middle, Position.down],
+    Swipe.down: [10,
+                 [Position.up, Position.middle, Position.down],
                  [Position.up, Position.down]],
-    Swipe.right: [[Position.middle, Position.right],
+    Swipe.right: [6,
+                  [Position.middle, Position.right],
                   [Position.left, Position.middle, Position.right],
                   [Position.left, Position.right]],
-    Swipe.left: [[Position.middle, Position.left],
+    Swipe.left: [6,
+                 [Position.middle, Position.left],
                  [Position.right, Position.middle, Position.left],
                  [Position.right, Position.left]]}
