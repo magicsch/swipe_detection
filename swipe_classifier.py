@@ -10,7 +10,8 @@ from typing import Optional
 
 class SwipeClassifier:
     def __init__(self) -> None:
-        self._last_states = deque(maxlen=3)
+        self._r_last_states = deque(maxlen=3)
+        self._l_last_states = deque(maxlen=3)
         self._r_wrist_seq = deque(maxlen=10)
         self._l_wrist_seq = deque(maxlen=10)
         self._nose_seq = deque(maxlen=10)
@@ -60,33 +61,33 @@ class SwipeClassifier:
 
             self._r_wrist_seq.append(n_right)
             self._l_wrist_seq.append(n_left)
-            res = self.wrist_position(n_right)
-            out = self.update_state(res)
+            pos = self.wrist_position(n_right)
+            out_r = self.update_state(self._r_last_states, pos)
+            pos = self.wrist_position(n_left)
+            out_l = self.update_state(self._l_last_states, pos)
 
-            frame = self.debug_draw(frame, keypoints)
+            out = out_r if out_r else out_l
 
-        if debug_img:
-            return out, frame
-        return out
+            frame = self.debug_draw(frame, keypoints) if debug_img else frame
+
+        return out, frame if debug_img else frame
 
     def debug_draw(self, img, kps):
-        # items = itemgetter('right_elbow')(KEYPOINT_DICT)
-        # r_e = kps[items, :2]*img.shape[0]
         frame = Movenet.draw_keypoints(img, kps, self._thresh)
         return frame
 
-    def update_state(self, position) -> Optional[Position]:
-        if not self._last_states:
-            self._last_states.append(position)
-        elif self._last_states and not self._last_states[-1] == position:
-            self._last_states.append(position)
-            return self.detect_swipe()
+    def update_state(self, states, position) -> Optional[Position]:
+        if not states:
+            states.append(position)
+        elif states and not states[-1] == position:
+            states.append(position)
+            return self.detect_swipe(states)
         return None
 
-    def detect_swipe(self) -> Optional[Position]:
+    def detect_swipe(self, states) -> Optional[Position]:
         for k, v in SWIPE_DEF_DICT.items():
             for el in v:
-                if list(self._last_states)[-(len(el)):] == el:
+                if list(states)[-(len(el)):] == el:
                     return k
 
     def move_displacement(self, seq) -> np.array:
