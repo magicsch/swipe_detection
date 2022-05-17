@@ -57,12 +57,8 @@ class SwipeClassifier:
         self._nose_seq.append(nose)
 
         if self.person_valid(keypoints, self._nose_seq):
-
             n_right, n_left = self.normalize_wrists(
                 keypoints, shoulder_width)
-
-            # make it detect swipes even when last frame
-            # person not valid
 
             self._r_wrist_seq.append(n_right)
             pos = self.wrist_position(n_right)
@@ -97,8 +93,6 @@ class SwipeClassifier:
             multip, *list_ = v
             for el in list_:
                 if list(states)[-(len(el)):] == el and self.move_displacement(positions_seq)[1] >= multip*self.shoulder_width:
-                    # print(self.move_displacement(self._r_wrist_seq)[1])
-                    # print(multip*self.shoulder_width)
                     return k
 
     def move_displacement(self, seq) -> tuple:
@@ -112,7 +106,7 @@ class SwipeClassifier:
         if len(seq) == 0:
             return True
         # is person moving
-        if self.move_displacement(seq)[1] <= self._move_thresh and self.shoulder_width >= 0.12:
+        if self.move_displacement(seq)[1] <= self._move_thresh and .25 >= self.shoulder_width >= .12:
             items = itemgetter('nose', 'right_shoulder',
                                'left_shoulder', 'right_elbow',
                                'left_elbow', 'right_wrist', 'left_wrist')(KEYPOINT_DICT)
