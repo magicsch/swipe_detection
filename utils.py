@@ -1,7 +1,7 @@
 from enum import Enum
 
 BLUE = (255, 0, 0)
-GREE = (0, 0, 255)
+GREEN = (0, 0, 255)
 RED = (0, 0, 255)
 
 KEYPOINT_DICT = {
@@ -58,7 +58,7 @@ class Position(Enum):
 
 
 SWIPE_DEF_DICT = {
-    Swipe.up: [10,
+    Swipe.up: [8,
                [Position.down, Position.middle, Position.up],
                [Position.down, Position.up],
                [Position.middle, Position.up]],

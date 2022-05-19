@@ -8,7 +8,6 @@ class Movenet:
     def __init__(self) -> None:
         self._model = self._load_model()
         self._img_size = 256
-        self._keypoint_thresh = .4
 
     def _load_model(self) -> tf.lite.Interpreter:
         # Initialize the TFLite interpreter
@@ -31,13 +30,12 @@ class Movenet:
         return keypoints_with_scores[0, 0, :, :]
 
     @staticmethod
-    def draw_keypoints(image, keypoints_with_scores, threshold):
+    def draw_keypoints(image, keypoints_with_scores):
         """ Draws keypoints on image using threshold value """
         size = image.shape[0]
         for kp in keypoints_with_scores:
-            if kp[-1] >= threshold:
-                image = cv2.circle(
-                    image, (int(kp[1] * size), int(kp[0] * size)), 3, RED, 3)
+            image = cv2.circle(
+                image, (int(kp[1] * size), int(kp[0] * size)), 3, RED, 3)
         for ed in KEYPOINT_EDGES:
             start = tuple(
                 (np.flip(keypoints_with_scores[ed[0], :2])*size).astype(np.int32))
