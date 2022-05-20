@@ -1,6 +1,6 @@
 tensorflow>=2.5.0
-pycoral==0.1.0
-numpy
+mediapipe==0.8.10
 opencv-python
-pyaml
+numpy
+scipy
 
