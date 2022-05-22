@@ -34,18 +34,13 @@ class SwipeClassifier:
         self.frame_count = 0
         self.start_time = None
 
-    def _wrapper(func):
+    def _fps_wrapper(func):
         """
-            Calc FPS and set sequence lengths
+            Calc FPS
         """
         def wrap_func(*args, **kwargs):
             if not args[0].start_time:
                 args[0].start_time = time.time()
-            seq_len = int(args[0].fps)
-            if abs(args[0]._r_wrist_seq.maxlen - seq_len) > 2:
-                args[0]._r_wrist_seq = deque(maxlen=seq_len)
-                args[0]._l_wrist_seq = deque(maxlen=seq_len)
-                args[0]._nose_seq = deque(maxlen=seq_len//2)
             result = func(*args, **kwargs)
             args[0].frame_count += 1
             args[0].fps = args[0].frame_count//(time.time()-args[0].start_time)
@@ -55,7 +50,22 @@ class SwipeClassifier:
             return result
         return wrap_func
 
-    @_wrapper
+    def _seq_wrapper(func):
+        """
+            Sequences lengths vary according to fps
+        """
+        def wrap_func(*args, **kwargs):
+            seq_len = int(args[0].fps)
+            if abs(args[0]._r_wrist_seq.maxlen - seq_len) > 2:
+                args[0]._r_wrist_seq = deque(maxlen=seq_len)
+                args[0]._l_wrist_seq = deque(maxlen=seq_len)
+                args[0]._nose_seq = deque(maxlen=seq_len//2)
+            result = func(*args, **kwargs)
+            return result
+        return wrap_func
+
+    @_seq_wrapper
+    @_fps_wrapper
     def classify_swipe(self, frame, debug_img=False):
         out = None
         results = self._pose.process(frame)
@@ -107,8 +117,8 @@ class SwipeClassifier:
         # is person moving
         if (self._move_displacement(nose_seq)[1] <= self.shoulder_width*.5) and (.2 >= self.shoulder_width >= .10):
             return True
-        print('no person')
-        print(self.frame_count)
+        # print('no person')
+        # print(self.frame_count)
         return False
 
     def _get_normalization_factors(self, lms) -> tuple:
