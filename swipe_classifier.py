@@ -52,7 +52,7 @@ class SwipeClassifier:
 
     def _seq_wrapper(func):
         """
-            Sequences lengths vary according to fps
+            Set sequences lengths which vary according to fps
         """
         def wrap_func(*args, **kwargs):
             seq_len = int(args[0].fps)
@@ -114,11 +114,8 @@ class SwipeClassifier:
     def _person_valid(self, nose_seq) -> bool:
         if len(nose_seq) == 0:
             return True
-        # is person moving
         if (self._move_displacement(nose_seq)[1] <= self.shoulder_width*.5) and (.2 >= self.shoulder_width >= .10):
             return True
-        # print('no person')
-        # print(self.frame_count)
         return False
 
     def _get_normalization_factors(self, lms) -> tuple:

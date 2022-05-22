@@ -10,6 +10,13 @@ class Swipe(enum.IntEnum):
     down = 4
 
 
+class Direction(enum.IntEnum):
+    right = 1
+    left = 2
+    up = 3
+    down = 4
+
+
 class Position(enum.IntEnum):
     middle = 0
     right = 1
