@@ -23,8 +23,8 @@ def main():
             break
         elif success:
             # dont't need to upscale without debug
-            img_sz = (960,) * 2
-            frame = cv2.resize(frame, img_sz)
+            # img_sz = (960,) * 2
+            # frame = cv2.resize(frame, img_sz)
 
             out, frame = classifier.classify_swipe(
                 frame, debug_img=True)

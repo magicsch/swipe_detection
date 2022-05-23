@@ -7,7 +7,8 @@ from geometry_utils import plane_normal, vec_direction
 from classifier_utils import Position, Swipe, SWIPE_DEF_DICT
 from mp_utils import PoseLandmark, UsefulLandmarks, RED
 from operator import itemgetter
-from typing import Optional
+from typing import Optional, Union
+from lm_state import LMState
 
 
 import mediapipe as mp
@@ -17,12 +18,12 @@ mp_pose = mp.solutions.pose
 
 
 class SwipeClassifier:
-    def __init__(self, detection_confidence=.5, tracking_confidence=.8) -> None:
+    def __init__(self, detection_confidence=.7, tracking_confidence=.7) -> None:
         self._r_last_states = deque(maxlen=3)
         self._l_last_states = deque(maxlen=3)
-        self._r_wrist_seq = deque(maxlen=10)
-        self._l_wrist_seq = deque(maxlen=10)
-        self._nose_seq = deque(maxlen=10)
+        self._rw_state = LMState()
+        self._lw_state = LMState()
+        self._nose_state = LMState()
         self._pose = mp_pose.Pose(
             min_detection_confidence=detection_confidence,
             min_tracking_confidence=tracking_confidence,
@@ -35,9 +36,6 @@ class SwipeClassifier:
         self.start_time = None
 
     def _fps_wrapper(func):
-        """
-            Calc FPS
-        """
         def wrap_func(*args, **kwargs):
             if not args[0].start_time:
                 args[0].start_time = time.time()
@@ -45,28 +43,13 @@ class SwipeClassifier:
             args[0].frame_count += 1
             args[0].fps = args[0].frame_count//(time.time()-args[0].start_time)
             if kwargs['debug_img']:
-                cv2.putText(args[1], f'{args[0].fps:.0f} fps', (50, int(args[1].shape[1]*0.9)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 2, RED, 5)
+                cv2.putText(args[1], f'{args[0].fps:.0f} fps', (int(args[1].shape[1]*.75), 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, RED, 5)
             return result
         return wrap_func
 
-    def _seq_wrapper(func):
-        """
-            Set sequences lengths which vary according to fps
-        """
-        def wrap_func(*args, **kwargs):
-            seq_len = int(args[0].fps)
-            if abs(args[0]._r_wrist_seq.maxlen - seq_len) > 2:
-                args[0]._r_wrist_seq = deque(maxlen=seq_len)
-                args[0]._l_wrist_seq = deque(maxlen=seq_len)
-                args[0]._nose_seq = deque(maxlen=seq_len//2)
-            result = func(*args, **kwargs)
-            return result
-        return wrap_func
-
-    @_seq_wrapper
     @_fps_wrapper
-    def classify_swipe(self, frame, debug_img=False):
+    def classify_swipe(self, frame, debug_img=False) -> Union[np.array, tuple]:
         out = None
         results = self._pose.process(frame)
 
@@ -83,21 +66,21 @@ class SwipeClassifier:
             self.shoulder_width, nose = self._get_normalization_factors(
                 lms)
 
-            self._nose_seq.append(nose)
+            self._nose_state.update(self.fps, nose)
 
-            if self._person_valid(self._nose_seq):
+            if self._person_valid(self._nose_state.seq):
                 n_right, n_left = self._normalize_wrists(
                     lms, self.shoulder_width)
 
-                self._r_wrist_seq.append(n_right)
+                self._rw_state.update(self.fps, n_right)
                 pos = self._wrist_position(n_right)
                 out_r = self._update_state(
-                    self._r_last_states, pos, self._r_wrist_seq)
+                    self._r_last_states, pos, self._rw_state.seq)
 
-                self._l_wrist_seq.append(n_left)
+                self._lw_state.update(self.fps, n_left)
                 pos = self._wrist_position(n_left)
                 out_l = self._update_state(
-                    self._l_last_states, pos, self._l_wrist_seq)
+                    self._l_last_states, pos, self._lw_state.seq)
 
                 out = out_r if out_r else out_l
 
