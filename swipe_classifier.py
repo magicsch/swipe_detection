@@ -1,17 +1,15 @@
+from functools import wraps
 import time
 import numpy as np
 from cv2 import cv2
 from collections import deque
-from scipy.spatial.transform import Rotation as R
 from geometry_utils import plane_normal, vec_direction
 from classifier_utils import Position, Swipe, SWIPE_DEF_DICT
 from mp_utils import PoseLandmark, UsefulLandmarks, RED
-from operator import itemgetter
 from typing import Optional, Union
-from lm_state import LMState
-
-
+from wrist_state import WristState
 import mediapipe as mp
+from lm_state import LMState
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
@@ -21,8 +19,8 @@ class SwipeClassifier:
     def __init__(self, detection_confidence=.7, tracking_confidence=.7) -> None:
         self._r_last_states = deque(maxlen=3)
         self._l_last_states = deque(maxlen=3)
-        self._rw_state = LMState()
-        self._lw_state = LMState()
+        self._rw_state = WristState()
+        self._lw_state = WristState()
         self._nose_state = LMState()
         self._pose = mp_pose.Pose(
             min_detection_confidence=detection_confidence,
@@ -36,6 +34,7 @@ class SwipeClassifier:
         self.start_time = None
 
     def _fps_wrapper(func):
+        @wraps(func)
         def wrap_func(*args, **kwargs):
             if not args[0].start_time:
                 args[0].start_time = time.time()
@@ -55,32 +54,23 @@ class SwipeClassifier:
 
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
-
             frame = self._debug_draw(
                 frame, results.pose_landmarks) if debug_img else frame
-
             lms = np.array(
                 [(lm.x, lm.y, lm.visibility) for lm in landmarks]
             )
-
             self.shoulder_width, nose = self._get_normalization_factors(
                 lms)
-
             self._nose_state.update(self.fps, nose)
 
             if self._person_valid(self._nose_state.seq):
-                n_right, n_left = self._normalize_wrists(
+                n_right, n_left = self._elbow_normalize(
                     lms, self.shoulder_width)
 
-                self._rw_state.update(self.fps, n_right)
-                pos = self._wrist_position(n_right)
-                out_r = self._update_state(
-                    self._r_last_states, pos, self._rw_state.seq)
-
-                self._lw_state.update(self.fps, n_left)
-                pos = self._wrist_position(n_left)
-                out_l = self._update_state(
-                    self._l_last_states, pos, self._lw_state.seq)
+                out_l = self._rw_state.update(
+                    self.fps, n_right, lms[PoseLandmark.RIGHT_WRIST, :2])
+                out_r = self._lw_state.update(
+                    self.fps, n_left, lms[PoseLandmark.LEFT_WRIST, :2])
 
                 out = out_r if out_r else out_l
 
@@ -109,7 +99,7 @@ class SwipeClassifier:
         sh_width = np.linalg.norm(r_sh-l_sh)
         return sh_width, nose
 
-    def _normalize_wrists(self, lms, scl_factor=None) -> tuple:
+    def _elbow_normalize(self, lms, scl_factor=None) -> tuple:
         if not scl_factor:
             scl_factor = self.shoulder_width
         items = [PoseLandmark.RIGHT_WRIST, PoseLandmark.RIGHT_ELBOW,
@@ -118,29 +108,29 @@ class SwipeClassifier:
         scl = np.array((scl_factor,)*2)
         return (r_wr - r_el)/scl, (l_wr - l_el)/scl
 
-    def _wrist_position(self, pos) -> Position:
-        if np.linalg.norm(pos) > self.shoulder_width*3.5:
-            p = abs(pos)
-            if p[0] > p[1]:
-                return Position.right if np.sign(pos[0]) == -1 else Position.left
-            if p[0] < p[1]:
-                return Position.up if np.sign(pos[1]) == -1 else Position.down
-        return Position.middle
-
-    def _update_state(self, states, position, pos_seq) -> Optional[Position]:
-        if not states:
-            states.append(position)
-        elif states and not states[-1] == position:
-            states.append(position)
-            return self._detect_swipe(states, pos_seq)
-
-    def _detect_swipe(self, states, positions_seq) -> Optional[Position]:
-        for k, v in SWIPE_DEF_DICT.items():
-            multip, *list_ = v
-            for el in list_:
-                if list(states)[-(len(el)):] == el and self._move_displacement(positions_seq)[1] >= multip*self.shoulder_width:
-                    return k
-
     def _move_displacement(self, seq) -> tuple:
         disp = np.ptp(seq, axis=0)
         return (0, disp[0]) if disp[0] > disp[1] else (1, disp[1])
+
+    # def _wrist_position(self, pos) -> Position:
+    #     if np.linalg.norm(pos) > self.shoulder_width*3.5:
+    #         p = abs(pos)
+    #         if p[0] > p[1]:
+    #             return Position.right if np.sign(pos[0]) == -1 else Position.left
+    #         if p[0] < p[1]:
+    #             return Position.up if np.sign(pos[1]) == -1 else Position.down
+    #     return Position.middle
+
+    # def _update_state(self, states, position, pos_seq) -> Optional[Position]:
+    #     if not states:
+    #         states.append(position)
+    #     elif states and not states[-1] == position:
+    #         states.append(position)
+    #         return self._detect_swipe(states, pos_seq)
+
+    # def _detect_swipe(self, states, positions_seq) -> Optional[Position]:
+    #     for k, v in SWIPE_DEF_DICT.items():
+    #         multip, *list_ = v
+    #         for el in list_:
+    #             if list(states)[-(len(el)):] == el and self._move_displacement(positions_seq)[1] >= multip*self.shoulder_width:
+    #                 return k

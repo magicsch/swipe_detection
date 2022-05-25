@@ -11,10 +11,10 @@ class Swipe(enum.IntEnum):
 
 
 class Direction(enum.IntEnum):
-    right = 1
-    left = 2
-    up = 3
-    down = 4
+    horizontal = 1
+    vertical = 2
+    # up = 3
+    # down = 4
 
 
 class Position(enum.IntEnum):
@@ -28,18 +28,18 @@ class Position(enum.IntEnum):
 # A change of position is an event
 # Events that are swipes defined
 SWIPE_DEF_DICT = {
-    Swipe.up: [5,
-               [Position.down, Position.middle, Position.up],
-               [Position.down, Position.up],
-               [Position.middle, Position.up]],
-    Swipe.down: [7,
-                 [Position.up, Position.middle, Position.down],
-                 [Position.up, Position.down]],
-    Swipe.right: [5,
-                  [Position.middle, Position.right],
-                  [Position.left, Position.middle, Position.right],
-                  [Position.left, Position.right]],
-    Swipe.left: [5,
-                 [Position.middle, Position.left],
-                 [Position.right, Position.middle, Position.left],
-                 [Position.right, Position.left]]}
+    Swipe.up: [
+        [Position.down, Position.middle, Position.up],
+        [Position.down, Position.up],
+        [Position.middle, Position.up]],
+    Swipe.down: [
+        [Position.up, Position.middle, Position.down],
+        [Position.up, Position.down]],
+    Swipe.right: [
+        [Position.middle, Position.right],
+        [Position.left, Position.middle, Position.right],
+        [Position.left, Position.right]],
+    Swipe.left: [
+        [Position.middle, Position.left],
+        [Position.right, Position.middle, Position.left],
+        [Position.right, Position.left]]}
