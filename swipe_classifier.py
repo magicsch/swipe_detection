@@ -34,6 +34,9 @@ class SwipeClassifier:
         self.start_time = None
 
     def _fps_wrapper(func):
+        """
+            Calcs fps and displays them on frame if debug mode
+        """
         @wraps(func)
         def wrap_func(*args, **kwargs):
             if not args[0].start_time:
@@ -74,6 +77,8 @@ class SwipeClassifier:
 
                 out = out_r if out_r else out_l
 
+                # print(self._rw_state.direction)
+
         return out, frame if debug_img else out
 
     def _debug_draw(self, img, lms) -> np.array:
@@ -109,28 +114,5 @@ class SwipeClassifier:
         return (r_wr - r_el)/scl, (l_wr - l_el)/scl
 
     def _move_displacement(self, seq) -> tuple:
-        disp = np.ptp(seq, axis=0)
-        return (0, disp[0]) if disp[0] > disp[1] else (1, disp[1])
-
-    # def _wrist_position(self, pos) -> Position:
-    #     if np.linalg.norm(pos) > self.shoulder_width*3.5:
-    #         p = abs(pos)
-    #         if p[0] > p[1]:
-    #             return Position.right if np.sign(pos[0]) == -1 else Position.left
-    #         if p[0] < p[1]:
-    #             return Position.up if np.sign(pos[1]) == -1 else Position.down
-    #     return Position.middle
-
-    # def _update_state(self, states, position, pos_seq) -> Optional[Position]:
-    #     if not states:
-    #         states.append(position)
-    #     elif states and not states[-1] == position:
-    #         states.append(position)
-    #         return self._detect_swipe(states, pos_seq)
-
-    # def _detect_swipe(self, states, positions_seq) -> Optional[Position]:
-    #     for k, v in SWIPE_DEF_DICT.items():
-    #         multip, *list_ = v
-    #         for el in list_:
-    #             if list(states)[-(len(el)):] == el and self._move_displacement(positions_seq)[1] >= multip*self.shoulder_width:
-    #                 return k
+        dx, dy = np.ptp(seq, axis=0)
+        return (0, dx) if dx > dy else (1, dy)

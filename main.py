@@ -1,5 +1,4 @@
 from cv2 import cv2
-import time
 from swipe_classifier import SwipeClassifier
 from utils import *
 import traceback
@@ -28,7 +27,7 @@ def main():
 
             out, frame = classifier.classify_swipe(
                 frame, debug_img=True)
-            if out is not None:
+            if out:
                 # print('-----------')
                 # print(out.name)
                 cv2.putText(frame, out.name, (100, 150),
