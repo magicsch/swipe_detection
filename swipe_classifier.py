@@ -4,8 +4,8 @@ import numpy as np
 from cv2 import cv2
 from collections import deque
 from geometry_utils import plane_normal, vec_direction
-from classifier_utils import Position, Swipe, SWIPE_DEF_DICT
-from mp_utils import PoseLandmark, UsefulLandmarks, RED
+from classifier_utils import Position, Swipe, SWIPE_DEF_DICT, Side
+from mp_utils import PoseLandmark, RED
 from typing import Optional, Union
 from wrist_state import WristState
 import mediapipe as mp
@@ -62,22 +62,23 @@ class SwipeClassifier:
             lms = np.array(
                 [(lm.x, lm.y, lm.visibility) for lm in landmarks]
             )
-            self.shoulder_width, nose = self._get_normalization_factors(
-                lms)
-            self._nose_state.update(self.fps, nose)
+            r_sh, l_sh = lms[(PoseLandmark.RIGHT_SHOULDER,
+                              PoseLandmark.LEFT_SHOULDER), :2]
+            self.shoulder_width = np.linalg.norm(r_sh-l_sh)
+            # self.shoulder_width, nose = self._get_normalization_factors(
+            #     lms)
+            self._nose_state.update(self.fps, lms[PoseLandmark.NOSE, :2])
 
             if self._person_valid(self._nose_state.seq):
-                n_right, n_left = self._elbow_normalize(
-                    lms, self.shoulder_width)
+                # n_right, n_left = self._elbow_normalize(
+                #     lms, self.shoulder_width)
 
-                out_l = self._rw_state.update(
-                    self.fps, n_right, lms[PoseLandmark.RIGHT_WRIST, :2])
-                out_r = self._lw_state.update(
-                    self.fps, n_left, lms[PoseLandmark.LEFT_WRIST, :2])
+                out_r = self._rw_state.update(self.fps, lms)
+                out_l = self._lw_state.update(self.fps, lms)
+
+                print(self._rw_state.position)
 
                 out = out_r if out_r else out_l
-
-                # print(self._rw_state.direction)
 
         return out, frame if debug_img else out
 
@@ -96,23 +97,23 @@ class SwipeClassifier:
             return True
         return False
 
-    def _get_normalization_factors(self, lms) -> tuple:
-        items = [PoseLandmark.RIGHT_SHOULDER,
-                 PoseLandmark.LEFT_SHOULDER,
-                 PoseLandmark.NOSE]
-        r_sh, l_sh, nose = lms[items, :2]
-        sh_width = np.linalg.norm(r_sh-l_sh)
-        return sh_width, nose
-
-    def _elbow_normalize(self, lms, scl_factor=None) -> tuple:
-        if not scl_factor:
-            scl_factor = self.shoulder_width
-        items = [PoseLandmark.RIGHT_WRIST, PoseLandmark.RIGHT_ELBOW,
-                 PoseLandmark.LEFT_WRIST, PoseLandmark.LEFT_ELBOW]
-        r_wr, r_el, l_wr, l_el = lms[items, :2]
-        scl = np.array((scl_factor,)*2)
-        return (r_wr - r_el)/scl, (l_wr - l_el)/scl
-
     def _move_displacement(self, seq) -> tuple:
         dx, dy = np.ptp(seq, axis=0)
         return (0, dx) if dx > dy else (1, dy)
+
+    # def _get_normalization_factors(self, lms) -> tuple:
+    #     items = [PoseLandmark.RIGHT_SHOULDER,
+    #              PoseLandmark.LEFT_SHOULDER,
+    #              PoseLandmark.NOSE]
+    #     r_sh, l_sh, nose = lms[items, :2]
+    #     sh_width = np.linalg.norm(r_sh-l_sh)
+    #     return sh_width, nose
+
+    # def _elbow_normalize(self, lms, scl_factor=None) -> tuple:
+    #     if not scl_factor:
+    #         scl_factor = self.shoulder_width
+    #     items = [PoseLandmark.RIGHT_WRIST, PoseLandmark.RIGHT_ELBOW,
+    #              PoseLandmark.LEFT_WRIST, PoseLandmark.LEFT_ELBOW]
+    #     r_wr, r_e, l_wr, l_e = lms[items, :2]
+    #     scl = np.array((scl_factor,)*2)
+    #     return (r_wr - r_e)/scl, (l_wr - l_e)/scl

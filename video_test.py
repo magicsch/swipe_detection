@@ -1,3 +1,7 @@
+"""
+    This script is meant to show how the Swipe Classifier is used
+"""
+
 from cv2 import cv2
 from swipe_classifier import SwipeClassifier
 from utils import *
@@ -6,15 +10,9 @@ from mp_utils import RED
 import time
 
 
-"""
-    This script is meant to show how the Swipe Classifier is used,
-    for for debugging also
-"""
-
-
 def main():
     classifier = SwipeClassifier()
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture('test.mp4')
 
     while True:
         success, frame = cap.read()
@@ -49,4 +47,3 @@ if __name__ == '__main__':
         pass
     except BaseException as e:
         print(traceback.format_exc())
-        pass

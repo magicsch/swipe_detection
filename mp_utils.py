@@ -41,14 +41,14 @@ class PoseLandmark(enum.IntEnum):
     RIGHT_FOOT_INDEX = 32
 
 
-UsefulLandmarks = [
-    PoseLandmark.RIGHT_SHOULDER,
-    PoseLandmark.LEFT_SHOULDER,
-    PoseLandmark.RIGHT_HIP,
-    PoseLandmark.LEFT_HIP,
-    PoseLandmark.RIGHT_ELBOW,
-    PoseLandmark.LEFT_ELBOW,
-    PoseLandmark.RIGHT_WRIST,
-    PoseLandmark.LEFT_WRIST,
-    PoseLandmark.NOSE
-]
+# UsefulLandmarks = [
+#     PoseLandmark.RIGHT_SHOULDER,
+#     PoseLandmark.LEFT_SHOULDER,
+#     PoseLandmark.RIGHT_HIP,
+#     PoseLandmark.LEFT_HIP,
+#     PoseLandmark.RIGHT_ELBOW,
+#     PoseLandmark.LEFT_ELBOW,
+#     PoseLandmark.RIGHT_WRIST,
+#     PoseLandmark.LEFT_WRIST,
+#     PoseLandmark.NOSE
+# ]

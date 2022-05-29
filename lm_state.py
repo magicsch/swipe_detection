@@ -10,7 +10,6 @@ class LMState():
     #     self.seq = None
     #     self.last_pos = None
 
-    # make this create seq and update  its length
     def resize_seq(self, seq, fps) -> deque:
         self.fps = int(fps)
         if seq is None:
@@ -24,7 +23,13 @@ class LMState():
 
     def update(self, fps, pos) -> None:
         if not hasattr(self, 'seq'):
-            self.seq = deque(maxlen=10)
-        self.seq = self.resize_seq(self.seq, fps)
-        self.last_pos = pos
+            # self.seq = deque(maxlen=10)
+            self.__dict__['seq'] = deque(maxlen=10)
+        else:
+            self.seq = self.resize_seq(self.seq, fps)
+        # if not hasattr(self, 'last_pos'):
+        #     # self.last_pos = pos
+        #     self.__dict__['last_pos'] = pos
+        # else:
+        #     self.last_pos = pos
         self.seq.append(pos)
