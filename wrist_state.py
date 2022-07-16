@@ -64,9 +64,9 @@ class WristState(LMState):
     @property
     def position(self) -> Position:
         if np.linalg.norm(self.norm_pos) > self.shoulder_width*3:
-            if abs(self.wrist_ang) >= 160:
+            if abs(self.wrist_ang) >= 140:
                 return Position.up
-            elif abs(self.wrist_ang) <= 20:
+            elif abs(self.wrist_ang) <= 40:
                 return Position.down
             else:
                 return Position.right if np.sign(self.wrist_ang) == -1 else Position.left
