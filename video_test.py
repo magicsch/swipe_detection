@@ -2,7 +2,7 @@
     This script is meant to show how the Swipe Classifier is used
 """
 
-from cv2 import cv2
+import cv2
 from swipe_classifier import SwipeClassifier
 from utils import *
 import traceback
@@ -12,7 +12,7 @@ import time
 
 def main():
     classifier = SwipeClassifier()
-    cap = cv2.VideoCapture('test.mp4')
+    cap = cv2.VideoCapture('test1.mp4')
 
     while True:
         success, frame = cap.read()

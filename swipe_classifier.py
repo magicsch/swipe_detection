@@ -1,7 +1,7 @@
 from functools import wraps
 import time
 import numpy as np
-from cv2 import cv2
+import cv2
 from collections import deque
 from geometry_utils import plane_normal, vec_direction
 from classifier_utils import Position, Swipe, SWIPE_DEF_DICT, Side

@@ -1,4 +1,4 @@
-from cv2 import cv2
+import cv2
 from swipe_classifier import SwipeClassifier
 from utils import *
 import traceback
