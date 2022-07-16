@@ -133,7 +133,7 @@ class WristState(LMState):
             dirs, *poss = v
             types = [el.type for el in self._dir_states]
             durations = [el.duration for el in self._dir_states]
-            if types == dirs and durations[-2] <= durations[-1]:
+            if types == dirs and durations[-2]/2 <= durations[-1]:
                 for pos in poss:
                     l = len(pos)
                     states = np.array(self._pos_states)[-l:]
